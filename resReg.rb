@@ -8,16 +8,6 @@ LinkTag = Array.new
 ImgArray = Array.new
 LinkArray = Array.new
 
-def ImgLinkOpt str
-  re = /http:\/\/livedoor\..*?\/news4vip2\/.*?/
-  if str =~ re
-    str = str.gsub(/http:\/\/livedoor\./, 'http://livedoor.4.')
-  end
-  return str
-end
-
-
-
 uri = URI.parse("http://news4vip.livedoor.biz/");
 #uri = URI.parse("http://livedoor.4.blogimg.jp/news4vip2/imgs/9/6/96a36e43.jpg")
 Net::HTTP.start(uri.host, uri.port){|http|
@@ -51,9 +41,7 @@ Net::HTTP.start(uri.host, uri.port){|http|
 http_img = /http.*?jpg/
 ImgTag.each do |image|
   if image =~ http_img
-    tmp = $&
-    tmp = ImgLinkOpt tmp
-    ImgArray << tmp
+    ImgArray << $&
   end
 end
 
