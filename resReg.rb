@@ -2,10 +2,24 @@
 require "net/http"
 require "uri"
 
+ImgTag = Array.new
+LinkTag = Array.new
+
 ImgArray = Array.new
 LinkArray = Array.new
 
+def ImgLinkOpt str
+  re = /http:\/\/livedoor\..*?\/news4vip2\/.*?/
+  if str =~ re
+    str = str.gsub(/http:\/\/livedoor\./, 'http://livedoor.4.')
+  end
+  return str
+end
+
+
+
 uri = URI.parse("http://news4vip.livedoor.biz/");
+#uri = URI.parse("http://livedoor.4.blogimg.jp/news4vip2/imgs/9/6/96a36e43.jpg")
 Net::HTTP.start(uri.host, uri.port){|http|
   #ヘッダー部
   header = {
@@ -16,33 +30,47 @@ Net::HTTP.start(uri.host, uri.port){|http|
   #送信
   response = http.post(uri.path, body, header)
   p response
+  #p response['location']
   #  p response.body
 
   #
   # imgタグとaタグのみをレスポンスデータから抽出する
   #
   reImg = /<img.*?>/
-  str = response.body
-  str.gsub(reImg) do |matched|
-    ImgArray << matched
+  res = response.body
+  res.gsub(reImg) do |matched|
+    ImgTag << matched
   end
 
   reA = /<a.*?>/
-  str.gsub(reA) do |matched|
-    LinkArray << matched
+  res.gsub(reA) do |matched|
+    LinkTag << matched
   end
 }
 
 http_img = /http.*?jpg/
-ImgArray.each do |image|
+ImgTag.each do |image|
   if image =~ http_img
-    puts $&
+    tmp = $&
+    tmp = ImgLinkOpt tmp
+    ImgArray << tmp
   end
 end
 
 http_link = /http.*?\"/
-LinkArray.each do |link|
+LinkTag.each do |link|
   if link =~ http_link
-    puts $&
+    tmp = $&
+    LinkArray << tmp.delete!("\"")
   end
 end
+
+ImgArray.each do |image|
+  puts image
+end
+
+LinkArray.each do |link|
+  puts link
+end
+
+
