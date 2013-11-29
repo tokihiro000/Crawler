@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 require "net/http"
 require "uri"
+require './download.rb'
 
 ImgTag = Array.new
 LinkTag = Array.new
@@ -9,7 +10,6 @@ ImgArray = Array.new
 LinkArray = Array.new
 
 uri = URI.parse("http://news4vip.livedoor.biz/");
-#uri = URI.parse("http://livedoor.4.blogimg.jp/news4vip2/imgs/9/6/96a36e43.jpg")
 Net::HTTP.start(uri.host, uri.port){|http|
   #ヘッダー部
   header = {
@@ -53,12 +53,12 @@ LinkTag.each do |link|
   end
 end
 
-ImgArray.each do |image|
-  puts image
-end
 
-LinkArray.each do |link|
-  puts link
+ImageDir = "./image/"
+ImgArray.each do |image|
+  column = image.split(/\//)
+  save_path = ImageDir + column.pop
+  fetch(image, save_path)
 end
 
 

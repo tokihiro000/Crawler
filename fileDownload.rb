@@ -1,3 +1,10 @@
+=begin
+
+[reference site]
+http://subtech.g.hatena.ne.jp/cho45/20081120/1227178806
+
+=end
+
 require 'net/http'
 require 'uri'
 
