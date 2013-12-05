@@ -2,7 +2,7 @@
 require "net/http"
 require "uri"
 
-$http_img = /http:.*?(jpg|gif|png)/
+$http_img = /http:[^\"]*?(jpg|gif|png)/
 $http_link = /http:.*?\"/
 ImgTag = Array.new
 LinkTag = Array.new
@@ -68,7 +68,7 @@ def fetch_post(uri_str, limit = 10)
     if new_uri =~ $http_link
       fetch_post(new_uri, limit - 1)
     else
-      print "fetch post error", new_uri, "\n"
+      print "fetch post error ", new_uri, "\n"
     end
   else
     print response.value, ".\n"
@@ -76,17 +76,19 @@ def fetch_post(uri_str, limit = 10)
 end
 
 def tag_retrieve
-  src_img = /src\s*=\s*\".*?\"/
+  #src_img = /src\s*=\s*\".*?\"/
+  
   ImgTag.each do |image|
     #    if image =~ $http_img
-    if image =~ src_img
-      tmp = $&
-      if tmp =~ $http_img
+    #if image =~ src_img
+      #tmp = $&
+      if image =~ $http_img
         # if AccessedImgURI.find_index(tmp) == nil
         #   ImgArray << $&
         # end
+        puts $&
         ImgArray << $&
-      end
+
     end
   end
 
@@ -102,17 +104,17 @@ def tag_retrieve
       end
     end
 
-    if link =~ src_img
-      tmp = $&
-      if tmp =~ $http_img
+  #if link =~ src_img
+      #tmp = $&
+      if link =~ $http_img
         #   if AccessedImgURI.find_index(tmp) == nil
         #     #puts "まだダウンロードしてない画像です"
         #     ImgArray << $&
         #   end
+        puts $&
         ImgArray << $&
       end
-    end
-  end
+end
 
   ImgTag.clear
   LinkTag.clear
@@ -120,7 +122,7 @@ end
 
 
 LinkArray << "http://gigazine.net/news/20120921-companion-tgs-2012/"
-LinkArray << "http://image.search.biglobe.ne.jp/search?q=%E6%97%A9%E5%B7%9D%E7%80%AC%E9%87%8C%E5%A5%88&o_sf=0"
+
 while LinkArray.length != 0
   link = LinkArray.pop
   fetch_post(link)
