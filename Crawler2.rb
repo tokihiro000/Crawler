@@ -120,7 +120,7 @@ end
 
 
 LinkArray << "http://gigazine.net/news/20120921-companion-tgs-2012/"
-
+LinkArray << "http://image.search.biglobe.ne.jp/search?q=%E6%97%A9%E5%B7%9D%E7%80%AC%E9%87%8C%E5%A5%88&o_sf=0"
 while LinkArray.length != 0
   link = LinkArray.pop
   fetch_post(link)
