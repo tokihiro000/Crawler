@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 require "net/http"
 require "uri"
-require './download.rb'
-
 
 $http_img = /http:.*?(jpg|gif|png)/
 $http_link = /http:.*?\"/
@@ -12,7 +10,7 @@ LinkTag = Array.new
 ImgArray = Array.new
 LinkArray = Array.new
 
-AccessedImgURI = Array.new
+#AccessedImgURI = Array.new
 AccessedLinkURI = Array.new
 
 imageDir = "./image/"
@@ -32,7 +30,12 @@ def fetch(uri_str, save_path, limit = 10)
     end
   when Net::HTTPRedirection
     puts response, " Redirect..."
-    fetch(response['location'], save_path, limit - 1)
+    new_uri = response['location']
+    if new_uri =~ $http_img
+      fetch(response['location'], save_path, limit - 1)
+    else
+      puts "download redirect error"
+    end
   else
     print "not exist image ", response.value, ".\n"
   end
@@ -73,16 +76,20 @@ def fetch_post(uri_str, limit = 10)
 end
 
 def tag_retrieve
-
+  src_img = /src\s*=\s*\".*?\"/
   ImgTag.each do |image|
-    if image =~ $http_img
+    #    if image =~ $http_img
+    if image =~ src_img
       tmp = $&
-      if AccessedImgURI.find_index(tmp) == nil
-        #puts "まだダウンロードしてない画像です"
+      if tmp =~ $http_img
+        # if AccessedImgURI.find_index(tmp) == nil
+        #   ImgArray << $&
+        # end
         ImgArray << $&
       end
     end
   end
+
 
   LinkTag.each do |link|
     if link =~ $http_link
@@ -95,10 +102,13 @@ def tag_retrieve
       end
     end
 
-    if link =~ $http_img
+    if link =~ src_img
       tmp = $&
-      if AccessedImgURI.find_index(tmp) == nil
-        #puts "まだダウンロードしてない画像です"
+      if tmp =~ $http_img
+        #   if AccessedImgURI.find_index(tmp) == nil
+        #     #puts "まだダウンロードしてない画像です"
+        #     ImgArray << $&
+        #   end
         ImgArray << $&
       end
     end
@@ -109,8 +119,6 @@ def tag_retrieve
 end
 
 
-#LinkArray << "http://news4vip.livedoor.biz/"
-#LinkArray << "http://blog.livedoor.jp/nemusoku/archives/30683412.html"
 LinkArray << "http://gigazine.net/news/20120921-companion-tgs-2012/"
 
 while LinkArray.length != 0
@@ -120,14 +128,10 @@ while LinkArray.length != 0
   tag_retrieve
 
   ImgArray.each do |image|
-    AccessedImgURI << image
+    #AccessedImgURI << image
     column = image.split(/\//)
     save_path = imageDir + column.pop
     fetch(image, save_path)
   end
   ImgArray.clear
-
-  if AccessedImgURI.length > 300
-    exit
-  end
 end
