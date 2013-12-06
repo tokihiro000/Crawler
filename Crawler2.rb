@@ -19,8 +19,14 @@ imageDir = "./image/"
 def fetch(uri_str, save_path, limit = 10)
   # You should choose better exception.
   raise ArgumentError, 'HTTP redirect too deep' if limit == 0
+  #print "download fetch uri = ", uri_str, "\n"
 
-  response = Net::HTTP.get_response(URI.parse(uri_str))
+  begin
+    response = Net::HTTP.get_response(URI.parse(uri_str))
+  rescue
+    puts "response error"
+    return
+  end
   case response
   when Net::HTTPSuccess
     puts response, " download..."
@@ -36,6 +42,10 @@ def fetch(uri_str, save_path, limit = 10)
     else
       puts "download redirect error"
     end
+  when Net::HTTPClientError
+    puts response, " HTTPClientError"
+  when Net::HTTPServerError
+    puts response "HTTPServerError"
   else
     print "not exist image ", response.value, ".\n"
   end
@@ -44,11 +54,11 @@ end
 def fetch_post(uri_str, limit = 10)
     # You should choose better exception.
   raise ArgumentError, 'HTTP redirect too deep' if limit == 0
-
+  #print "fetch_post uri = ", uri_str, "\n"
   response = Net::HTTP.get_response(URI.parse(uri_str))
   case response
   when Net::HTTPSuccess
-    puts response, " download..."
+    puts response, " http_success"
     #
     # imgタグとaタグのみをレスポンスデータから抽出する
     #
@@ -70,6 +80,10 @@ def fetch_post(uri_str, limit = 10)
     else
       print "fetch post error ", new_uri, "\n"
     end
+  when Net::HTTPClientError
+    puts response, " HTTPClientError(fetch_post)"
+  when Net::HTTPServerError
+    puts response "HTTPServerError(fetch_post)"
   else
     print response.value, ".\n"
   end
@@ -77,7 +91,7 @@ end
 
 def tag_retrieve
   #src_img = /src\s*=\s*\".*?\"/
-  
+
   ImgTag.each do |image|
     #    if image =~ $http_img
     #if image =~ src_img
@@ -121,8 +135,8 @@ end
 end
 
 
-LinkArray << "http://gigazine.net/news/20120921-companion-tgs-2012/"
-
+#LinkArray << "http://gigazine.net/news/20120921-companion-tgs-2012/"
+LinkArray << "http://0taku.livedoor.biz/archives/4514777.html"
 while LinkArray.length != 0
   link = LinkArray.pop
   fetch_post(link)
