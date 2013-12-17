@@ -136,7 +136,7 @@ end
 
 
 #LinkArray << "http://gigazine.net/news/20120921-companion-tgs-2012/"
-LinkArray << "http://0taku.livedoor.biz/archives/4514777.html"
+LinkArray << "http://image.search.biglobe.ne.jp/search?q=%E5%A4%95%E7%84%BC%E3%81%91"
 while LinkArray.length != 0
   link = LinkArray.pop
   fetch_post(link)
