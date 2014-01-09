@@ -19,7 +19,6 @@ imageDir = "./image/"
 def fetch(uri_str, save_path, limit = 10)
   # You should choose better exception.
   raise ArgumentError, 'HTTP redirect too deep' if limit == 0
-  #print "download fetch uri = ", uri_str, "\n"
 
   begin
     response = Net::HTTP.get_response(URI.parse(uri_str))
@@ -27,6 +26,7 @@ def fetch(uri_str, save_path, limit = 10)
     puts "response error"
     return
   end
+
   case response
   when Net::HTTPSuccess
     puts response, " download..."
@@ -90,51 +90,34 @@ def fetch_post(uri_str, limit = 10)
 end
 
 def tag_retrieve
-  #src_img = /src\s*=\s*\".*?\"/
-
   ImgTag.each do |image|
-    #    if image =~ $http_img
-    #if image =~ src_img
-      #tmp = $&
-      if image =~ $http_img
-        # if AccessedImgURI.find_index(tmp) == nil
-        #   ImgArray << $&
-        # end
-        puts $&
-        ImgArray << $&
-
+    if image =~ $http_img
+      puts $&
+      ImgArray << $&
     end
   end
-
 
   LinkTag.each do |link|
     if link =~ $http_link
       tmp = $&
       tmp = tmp.delete!("\"")
-      #とりあえずカンマを除いておく。ほんとは日本語の文字コードどーのこーのをどうにかしたい
-      if AccessedLinkURI.find_index(tmp) == nil && tmp.include?(",") == false
+      if AccessedLinkURI.find_index(tmp) == nil
         puts "まだアクセスしたこのないアドレスです"
-        LinkArray << tmp
+        LinkArray.unshift(tmp)
       end
     end
 
-  #if link =~ src_img
-      #tmp = $&
-      if link =~ $http_img
-        #   if AccessedImgURI.find_index(tmp) == nil
-        #     #puts "まだダウンロードしてない画像です"
-        #     ImgArray << $&
-        #   end
-        puts $&
-        ImgArray << $&
-      end
-end
+    if link =~ $http_img
+      puts $&
+      ImgArray << $&
+    end
+  end
 
   ImgTag.clear
   LinkTag.clear
 end
 
-
+imageCount = 0
 #LinkArray << "http://gigazine.net/news/20120921-companion-tgs-2012/"
 LinkArray << "http://image.search.biglobe.ne.jp/search?q=%E5%A4%95%E7%84%BC%E3%81%91"
 while LinkArray.length != 0
@@ -148,6 +131,12 @@ while LinkArray.length != 0
     column = image.split(/\//)
     save_path = imageDir + column.pop
     fetch(image, save_path)
+    imageCount += 1
   end
+
   ImgArray.clear
+
+  if imageCount  > 250
+    exit(0)
+  end
 end
