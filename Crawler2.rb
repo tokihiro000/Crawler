@@ -2,8 +2,8 @@
 require "net/http"
 require "uri"
 
-$http_img = /http:[^\"]*?(jpg|gif|png)/
-$http_link = /http:.*?\"/
+$http_img = /http:[^\:|^\"]*?(jpg|gif|png)/
+$http_link = /http:[^\"]*?\"/
 ImgTag = Array.new
 LinkTag = Array.new
 
@@ -118,14 +118,16 @@ def tag_retrieve
 end
 
 imageCount = 0
-#LinkArray << "http://gigazine.net/news/20120921-companion-tgs-2012/"
-LinkArray << "http://image.search.biglobe.ne.jp/search?q=%E5%A4%95%E7%84%BC%E3%81%91"
+LinkArray << "http://gigazine.net/news/20120921-companion-tgs-2012/"
+#LinkArray << "http://image.search.biglobe.ne.jp/search?q=%E5%A4%95%E7%84%BC%E3%81%91"
+
 while LinkArray.length != 0
   link = LinkArray.pop
   fetch_post(link)
   AccessedLinkURI << link
   tag_retrieve
 
+  p ImgArray
   ImgArray.each do |image|
     #AccessedImgURI << image
     column = image.split(/\//)
