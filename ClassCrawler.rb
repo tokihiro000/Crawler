@@ -14,19 +14,22 @@ require "net/http"
 require "uri"
 load("rbt.rb")
 load("CreateDigest.rb")
+load("face_detection.rb")
 
-$http_img = /http:[^\:|^\"]*?(jpg|gif|png)/
+# $http_img = /http:[^\:|^\"]*?(jpg|gif|png)/
+$http_img = /http:[^\:|^\"]*?(jpg)/
 $http_link = /http:[^\"]*?\"/
 
 class Crawler
 
-  def initialize(uri, img_dir = "./image/")
+  def initialize(uri, max_img = 100, img_dir = "./image/")
     @ImgTag = Array.new
     @AnchorTag = Array.new
     @ImgArray = Array.new
     @LinkArray = Array.new
     @AccessedLinkTree = Red_Black_Tree.new
     @digest256 = DigestClass.new("sha256")
+    @max_img = max_img
     @image_dir = img_dir
     @LinkArray << uri
   end
@@ -34,7 +37,7 @@ class Crawler
   #ここからprivateメソッド
   private
 
-  def fetch(uri_str, save_path, limit = 10)
+  def getHttpImage(uri_str, file_name, limit = 10)
     if limit == 0
       puts "Redirect too deep"
       return
@@ -51,27 +54,37 @@ class Crawler
     when Net::HTTPSuccess
       puts response, " download..."
       size = response["Content-Length"].to_f
+      save_path = @image_dir + file_name
       File.open(save_path, "wb") do |file|
         file.write response.body
+      end
+
+      #人物ならhumanフォルダへ、それ以外ならnot_humanフォルダへ
+      if faceDetection(save_path) == true
+        new_save_path = @image_dir + "human/" + file_name
+        File.rename(save_path, new_save_path)
+      else
+        new_save_path = @image_dir + "not_human/" + file_name
+        File.rename(save_path, new_save_path)
       end
     when Net::HTTPRedirection
       puts response, " Redirect..."
       new_uri = response['location']
       if new_uri =~ $http_img
-        fetch(response['location'], save_path, limit - 1)
+        getHttpImage(response['location'], file_name, limit - 1)
       else
         puts "download redirect error"
       end
     when Net::HTTPClientError
       puts response, " HTTPClientError"
     when Net::HTTPServerError
-      puts response "HTTPServerError"
+      puts response, "HTTPServerError"
     else
       print "not exist image ", response.value, ".\n"
-  end
+    end
   end
 
-  def fetch_post(uri_str, limit = 10)
+  def getHttpResponse(uri_str, limit = 10)
     if limit == 0
       puts "Redirect too deep"
       return
@@ -97,14 +110,14 @@ class Crawler
       new_uri = response['location']
       print response, " Redirect...", new_uri, ".\n"
       if new_uri =~ $http_link
-        fetch_post(new_uri, limit - 1)
+        getHttpResponse(new_uri, limit - 1)
       else
-        print "fetch post error ", new_uri, "\n"
+        print "getHttpImage post error ", new_uri, "\n"
       end
     when Net::HTTPClientError
-      puts response, " HTTPClientError(fetch_post)"
+      puts response, " HTTPClientError(getHttpResponse)"
     when Net::HTTPServerError
-      puts response "HTTPServerError(fetch_post)"
+      puts response, "HTTPServerError(getHttpResponse)"
     else
       print response.value, ".\n"
     end
@@ -128,6 +141,7 @@ class Crawler
         if @AccessedLinkTree[digest_text] == nil
           puts "まだアクセスしたことのないアドレスです"
           @LinkArray.unshift(link_uri)
+          @LinkArray.uniq!
         end
       end
 
@@ -144,23 +158,24 @@ class Crawler
   public
 
   def startCrawl
-    imageCount = 0
+    image_count = 0
     while @LinkArray.length != 0
       link = @LinkArray.pop
-      fetch_post(link)
+      getHttpResponse(link)
       digest_text = @digest256.StringDigest(link)
-      @AccessedLinkTree[digest_text] = link
-
+      res = @AccessedLinkTree[digest_text] = link
       tagRetrieve
+
       @ImgArray.each do |image|
         column = image.split(/\//)
-        save_path = @image_dir + column.pop
-        fetch(image, save_path)
-        imageCount += 1
+        #file_name = @image_dir + column.pop
+        getHttpImage(image, column.pop)
+        image_count += 1
       end
 
       @ImgArray.clear
-      if imageCount  > 250
+      if image_count  > @max_img
+        puts image_count
         exit(0)
       end
     end
@@ -168,6 +183,7 @@ class Crawler
 end
 
 if __FILE__ == $0
-  cl = Crawler.new("http://gigazine.net/news/20120921-companion-tgs-2012/")
+  #cl = Crawler.new("http://gigazine.net/news/20120921-companion-tgs-2012/", 1000)
+  cl = Crawler.new("http://burusoku-vip.com/archives/1711144.html", 1000)
   cl.startCrawl
 end

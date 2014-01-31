@@ -32,7 +32,7 @@ class Red_Black_Tree
   private
 
   def isRed(node)
-    if node != nil && node.color == 0
+    if node != nil && (node.color == 0)
       return 1
     else
       return 0
@@ -40,7 +40,7 @@ class Red_Black_Tree
   end
 
   def isBlack(node)
-    if node != nil && node.color = 1
+    if node != nil && (node.color = 1)
       return 1
     else
       return 0
@@ -117,6 +117,7 @@ class Red_Black_Tree
       return Node.new(key, data, 0)
     elsif key == node.key
       node.data = data
+      return node
     elsif key < node.key
       node.left = insert_node(node.left, key, data)
       new_tree = KeepTreesBalance(node)
@@ -125,8 +126,6 @@ class Red_Black_Tree
       node.right = insert_node(node.right, key, data)
       new_tree = KeepTreesBalance(node)
       return new_tree
-    else
-      return node
     end
   end
 
@@ -155,11 +154,13 @@ end
 if __FILE__ == $0
 
   t = Red_Black_Tree.new
-  100.times do |x|
+  10.times do |x|
     t[x+1]=(x+1)*100
   end
-
-  101.times do |x|
+  10.times do |x|
+    t[x+1]=(x+1)*100
+  end
+  10.times do |x|
     print t[x+1], "\n"
   end
 end

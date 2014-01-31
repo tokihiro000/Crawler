@@ -5,10 +5,10 @@ require "uri"
 $http_img = /http:[^\:|^\"]*?(jpg|gif|png)/
 $http_link = /http:[^\"]*?\"/
 ImgTag = Array.new
-LinkTag = Array.new
+AnchorTag = Array.new
 
 ImgArray = Array.new
-LinkArray = Array.new
+AnchorArray = Array.new
 
 #AccessedImgURI = Array.new
 AccessedLinkURI = Array.new
@@ -70,7 +70,7 @@ def fetch_post(uri_str, limit = 10)
 
     reA = /<a.*?>/
     res.gsub(reA) do |matched|
-      LinkTag << matched
+      AnchorTag << matched
     end
   when Net::HTTPRedirection
     new_uri = response['location']
@@ -97,13 +97,13 @@ def tag_retrieve
     end
   end
 
-  LinkTag.each do |link|
+  AnchorTag.each do |link|
     if link =~ $http_link
       tmp = $&
       tmp = tmp.delete!("\"")
       if AccessedLinkURI.find_index(tmp) == nil
         puts "まだアクセスしたこのないアドレスです"
-        LinkArray.unshift(tmp)
+        AnchorArray.unshift(tmp)
       end
     end
 
@@ -114,20 +114,19 @@ def tag_retrieve
   end
 
   ImgTag.clear
-  LinkTag.clear
+  AnchorTag.clear
 end
 
 imageCount = 0
-LinkArray << "http://gigazine.net/news/20120921-companion-tgs-2012/"
-#LinkArray << "http://image.search.biglobe.ne.jp/search?q=%E5%A4%95%E7%84%BC%E3%81%91"
+AnchorArray << "http://gigazine.net/news/20120921-companion-tgs-2012/"
+#AnchorArray << "http://image.search.biglobe.ne.jp/search?q=%E5%A4%95%E7%84%BC%E3%81%91"
 
-while LinkArray.length != 0
-  link = LinkArray.pop
+while AnchorArray.length != 0
+  link = AnchorArray.pop
   fetch_post(link)
   AccessedLinkURI << link
   tag_retrieve
 
-  p ImgArray
   ImgArray.each do |image|
     #AccessedImgURI << image
     column = image.split(/\//)
