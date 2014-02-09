@@ -6,7 +6,7 @@ initializeメソッドで指定したurlを始点として画像をかき集め�
 インスタンス生成後はstartCrawlメソッドを呼ぶことでクロールを開始します。
 (startCrawlメソッド以外はprivateです)
 グローバル変数でアドレスを取り出す正規表現を定義していますが、勉強不足のため
-完璧ではないかもしれないです(泣)
+完璧ではないです(泣)
 
 =end
 
@@ -19,24 +19,29 @@ load("face_detection.rb")
 # $http_img = /http:[^\:|^\"]*?(jpg|gif|png)/
 $http_img = /http:[^\:|^\"]*?(jpg)/
 $http_link = /http:[^\"]*?\"/
+$http_sharp = /http:.*?#/
+
+$gallery_dir = "./image/human/"
+$etc_dir = "./image/not_human/"
+$image_dir = "./image/"
 
 class Crawler
 
-  def initialize(uri, max_img = 100, img_dir = "./image/")
+  def initialize(uri, max_img = 100)
     @ImgTag = Array.new
     @AnchorTag = Array.new
     @ImgArray = Array.new
     @LinkArray = Array.new
     @AccessedLinkTree = Red_Black_Tree.new
     @digest256 = DigestClass.new("sha256")
+    @image_count = 0
     @max_img = max_img
-    @image_dir = img_dir
-    @LinkArray << uri
+    @first_uri = uri
   end
 
   #ここからprivateメソッド
   private
-
+  #画像ファイルをダウンロードするメソッド。
   def getHttpImage(uri_str, file_name, limit = 10)
     if limit == 0
       puts "Redirect too deep"
@@ -54,18 +59,23 @@ class Crawler
     when Net::HTTPSuccess
       puts response, " download..."
       size = response["Content-Length"].to_f
-      save_path = @image_dir + file_name
+      save_path = $image_dir + file_name
       File.open(save_path, "wb") do |file|
         file.write response.body
       end
 
       #人物ならhumanフォルダへ、それ以外ならnot_humanフォルダへ
-      if faceDetection(save_path) == true
-        new_save_path = @image_dir + "human/" + file_name
-        File.rename(save_path, new_save_path)
-      else
-        new_save_path = @image_dir + "not_human/" + file_name
-        File.rename(save_path, new_save_path)
+      begin
+        if faceDetection(save_path) == true
+          new_save_path = $image_dir + "human/" + file_name
+          File.rename(save_path, new_save_path)
+        else
+          new_save_path = $image_dir + "not_human/" + file_name
+          File.rename(save_path, new_save_path)
+        end
+      rescue
+        puts "invalid format image"
+        return
       end
     when Net::HTTPRedirection
       puts response, " Redirect..."
@@ -84,13 +94,20 @@ class Crawler
     end
   end
 
+  #httpでwebページへアクセスするメソッド。
   def getHttpResponse(uri_str, limit = 10)
     if limit == 0
       puts "Redirect too deep"
       return
     end
 
-    response = Net::HTTP.get_response(URI.parse(uri_str))
+    begin
+      response = Net::HTTP.get_response(URI.parse(uri_str))
+    rescue
+      puts "resoponse error"
+      return
+    end
+
     case response
     when Net::HTTPSuccess
       puts response, " http_success"
@@ -98,6 +115,12 @@ class Crawler
       # imgタグとaタグのみをレスポンスデータから抽出する
       reImg = /<img.*?>/
       res = response.body
+
+      if res == nil
+        puts "response.body is nil"
+        return
+      end
+
       res.gsub(reImg) do |matched|
         @ImgTag << matched
       end
@@ -109,11 +132,7 @@ class Crawler
     when Net::HTTPRedirection
       new_uri = response['location']
       print response, " Redirect...", new_uri, ".\n"
-      if new_uri =~ $http_link
-        getHttpResponse(new_uri, limit - 1)
-      else
-        print "getHttpImage post error ", new_uri, "\n"
-      end
+      getHttpResponse(new_uri, limit - 1)
     when Net::HTTPClientError
       puts response, " HTTPClientError(getHttpResponse)"
     when Net::HTTPServerError
@@ -123,32 +142,45 @@ class Crawler
     end
   end
 
+  #抽出したアンカータグとイメージタグからアドレスを取り出すメソッ
   def tagRetrieve
     @ImgTag.each do |image|
       if image =~ $http_img
-        puts $&
         @ImgArray << $&
       end
     end
 
     @AnchorTag.each do |link|
+      if link =~ $http_img
+        @ImgArray << $&
+      end
+
       if link =~ $http_link
         tmp = $&
         link_uri = tmp.delete!("\"")
-        digest_text = @digest256.StringDigest(link_uri)
 
+        #画像のurlがくる可能性があるので、その場合無視して次のループへ
+        if link_uri =~ $http_img
+          next
+        end
+
+        #"#"がついてるurlはページが重複するので"#"以下を消していく。
+        if link_uri =~ $http_sharp
+          tmp = $&
+          new_uri = tmp.delete!("\#")
+          print "sharp is deleted = ", new_uri,"\n"
+        else
+          new_uri = link_uri
+        end
+
+        digest_text = @digest256.StringDigest(new_uri)
         #アクセスしことがあるアドレスかを調べる
         if @AccessedLinkTree[digest_text] == nil
-          puts "まだアクセスしたことのないアドレスです"
-          @LinkArray.unshift(link_uri)
-          @LinkArray.uniq!
+            print "new url =", new_uri, "\n"
+            @LinkArray.unshift(new_uri)
         end
       end
 
-      if link =~ $http_img
-        puts $&
-        @ImgArray << $&
-      end
     end
     @ImgTag.clear
     @AnchorTag.clear
@@ -158,32 +190,52 @@ class Crawler
   public
 
   def startCrawl
-    image_count = 0
+    if @first_uri =~ /http:[^\"]*?/
+      @LinkArray << @first_uri
+    else
+      puts "first uri is invalid"
+      return nil
+    end
+
+    #既に存在しているファイル数を保存しておく。
+    exist_image = Dir::entries($gallery_dir).size + Dir::entries($etc_dir).size
+
     while @LinkArray.length != 0
+      @LinkArray.uniq!
       link = @LinkArray.pop
+      print "this access == == ", link, "\n"
       getHttpResponse(link)
+
+      #アクセスしたアドレスは赤黒木で保存しておく。keyはアドレスのsha256を計算した値とする。
       digest_text = @digest256.StringDigest(link)
       res = @AccessedLinkTree[digest_text] = link
+
+      #アドレスを取り出す
       tagRetrieve
 
       @ImgArray.each do |image|
         column = image.split(/\//)
-        #file_name = @image_dir + column.pop
         getHttpImage(image, column.pop)
-        image_count += 1
       end
 
       @ImgArray.clear
-      if image_count  > @max_img
-        puts image_count
-        exit(0)
+
+      #ダウンロードした画像数を確認して、設定を越えたらクロール終了
+      num = Dir::entries($gallery_dir).size + Dir::entries($etc_dir).size
+      if (num - exist_image) > @max_img
+        return 0
+        #exit(0)
       end
     end
   end
 end
 
 if __FILE__ == $0
-  #cl = Crawler.new("http://gigazine.net/news/20120921-companion-tgs-2012/", 1000)
-  cl = Crawler.new("http://burusoku-vip.com/archives/1711144.html", 1000)
-  cl.startCrawl
+  cl = Crawler.new("http://gigazine.net/news/20120921-companion-tgs-2012/", 1000)
+  result = cl.startCrawl
+  if result == 0
+    puts "正常終了"
+  else
+    puts "異常終了"
+  end
 end

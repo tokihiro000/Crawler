@@ -79,7 +79,8 @@ vbox2 = Gtk::VBox.new(true, 10)
 hbox = Gtk::HBox.new(true, 20)
 
 
-image_1 = Gtk::Image.new("test.jpg")
+#image_1 = Gtk::Image.new("test.jpg")
+image_1 = Gtk::Image.new
 
 url_entry = Gtk::Entry.new
 num_of_image_entry = Gtk::Entry.new
@@ -97,7 +98,11 @@ pbar = Gtk::ProgressBar.new
 
 window.set_size_request(window_width, window_height)
 window.title = "Main Controller"
+window.set_window_position(Gtk::Window::POS_CENTER)
 window.add(vbox)
+window2.set_size_request($window2_width, $window2_height)
+window2.title = "Image Gallery"
+window.set_window_position(Gtk::Window::POS_CENTER)
 
 vbox.pack_start(url_label, false, false, 5)
 url_entry.max_length = 300
@@ -121,9 +126,9 @@ vbox.pack_start(quit_button, false, false, 0)
 quit_button.can_default = true
 quit_button.grab_default
 
-image_1_width = image_1.pixbuf.width
-image_1_height = image_1.pixbuf.height
-image_1 = imageSizeTranslate(image_1, image_1_width, image_1_height)
+# image_1_width = image_1.pixbuf.width
+# image_1_height = image_1.pixbuf.height
+# image_1 = imageSizeTranslate(image_1, image_1_width, image_1_height)
 
 window2.add(image_1)
 
@@ -139,8 +144,6 @@ window.signal_connect("destroy") do
   Gtk.main_quit
 end
 
-window2.set_size_request($window2_width, $window2_height)
-window2.title = "Image Gallery"
 window2.signal_connect("destroy") do
   Gtk.main_quit
 end
@@ -201,7 +204,7 @@ button.signal_connect("clicked") do
       #OKの場合、Crawlerクラスのインスタンスを生成する。
       when Gtk::Dialog::RESPONSE_OK
         start_dialog.destroy
-
+        button.set_sensitive(false)
         #スレッド1は画像のクロールを行う。
         thread_1 = Thread.start do
           loop {
@@ -217,18 +220,20 @@ button.signal_connect("clicked") do
                 end
               end
               finish_dialog.show_all
+              button.set_sensitive(true)
               thread_1.join
               thread_2.join
             else
               puts "異常終了"
-              thread_1.kill
-              thread_2.kill
+              button.set_sensitive(true)
               error_dialog = createModalDialog("Error", "Error Occurred", window, 1)
               error_dialog.signal_connect("response") do |widget, response|
                 case response
                 when Gtk::Dialog::RESPONSE_OK
                   error_dialog.destroy
                 end
+              #thread_1.kill
+              thread_2.kill
               end
             end
           }
@@ -247,7 +252,7 @@ button.signal_connect("clicked") do
               break
             end
             pbar.fraction = new_val
-            sleep 0.3
+            sleep 3
           }
         end
       when Gtk::Dialog::RESPONSE_CANCEL
@@ -260,6 +265,7 @@ button.signal_connect("clicked") do
 end
 
 gallery_button.signal_connect("clicked") do
+  gallery_button.set_sensitive(false)
   image_name_array = Array.new
   Dir::entries($gallery_dir).each do |file|
     if file =~ /.*?\.jpg/
@@ -277,6 +283,7 @@ gallery_button.signal_connect("clicked") do
       image_1 = imageSizeTranslate(image_1, image_1.pixbuf.width, image_1.pixbuf.height)
       sleep 5
     end
+    gallery_button.set_sensitive(true)
   end
 end
 
@@ -288,8 +295,9 @@ quit_button.signal_connect("clicked") do
   Gtk.main_quit
 end
 
-window.show_all
 window2.show_all
+window.show_all
+
 
 Gtk.main
 
