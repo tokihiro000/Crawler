@@ -4,34 +4,44 @@ require 'opencv'
 include OpenCV
 
 
-image = IplImage.load("sample.jpg")
-#image2 = CvMat.load("sample.jpg", CV_LOAD_IMAGE_COLOR)
-sc = CvScalar.new(100, 100, 0)
+original_image = IplImage.load(ARGV[0])
+
+image = original_image.copy
+
+sc = CvScalar.new(255, 255, 255)
+sc_b = CvScalar.new(0, 0, 0)
+
 im_w = image.width
 im_h = image.height
-pixel = image[100, 100]
-p image[100, 100][0]
-p sc[0]
 
-pixel = image[100, 100]
-blue, green, red = pixel[0], pixel[1], pixel[2]
-print "[", 100, ",", 100, "]  ", "blue = ", blue, ", green = ", green, ", red = ", red, "\n"
-
+hsv_image = image.BGR2HSV
 im_w.times do |x|
   im_h.times do |y|
-    pixel = image[y, x]
-    blue, green, red = pixel[0], pixel[1], pixel[2]
-    if (240 < red) && (217 < green) && (green < 235) && (181 < blue) && (blue < 209)
-      image[y, x] = sc
-      puts "きた！"
+    pixel = hsv_image[y, x]
+    hue, saturation, value = pixel[0], pixel[1], pixel[2]
+    #if hue >= 0 && hue <= 15 && saturation >= 50 && saturation <= 255 && value >= 50 && value <= 255
+    if hue > 5 && hue <= 20 && saturation >= 10 && saturation <= 200 && value >= 110 && value <= 255
+      # オレンジの壁をはじく
+      if (value >= 230 && saturation >= 130) || (value >= 250 && saturation <= 30)
+        # 人じゃない
+        image[y, x] = sc_b
+      else
+        #image[y, x] = sc
+      end
+    else
+      image[y, x] = sc_b
     end
   end
 end
-image[100, 100][0]=0.0
-image[100, 100][1]=0.0
+
 
 window = GUI::Window.new('Image')
 window.show(image)
+
+window2 = GUI::Window.new('original_Image')
+window2.show(original_image)
+
+
 GUI::wait_key
 
 # hash = Hash.new
