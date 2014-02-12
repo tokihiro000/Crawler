@@ -4,21 +4,20 @@ require 'opencv'
 include OpenCV
 
 # 画像をロード
-img = IplImage.load('error.jpg')
-print "img.roi = ", img.get_roi(), "\n"
+img = IplImage.load('syugo2.jpg')
 
-# 顔検出に使うカスケードをロード
-detector = CvHaarClassifierCascade::load('./haarcascades/haarcascade_frontalface_default.xml')
+# 体検出に使うカスケードをロード
+detector = CvHaarClassifierCascade::load('/usr/local/Cellar/opencv/2.4.7.1/share/OpenCV/haarcascades/haarcascade_mcs_upperbody.xml')
 #detector = CvHaarClassifierCascade::load('haarcascade_frontalface_alt.xml')
 
+# 全身を検出して四角で囲む
 count = 0
-# 顔を検出して四角で囲む
 detector.detect_objects(img) { |rect|
   count += 1
-  puts count
   img.rectangle!(rect.top_left, rect.bottom_right, :color => CvColor::Red)
 }
 
+print "合計", count, "個の人がいます\n"
 # ウィンドウを作って画像を表示
 window = GUI::Window.new('Face Detection')
 window.show(img)
