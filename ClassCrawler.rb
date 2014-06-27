@@ -167,13 +167,18 @@ class Crawler
     @AnchorTag.each do |link|
       if link =~ $reg_absolute_img_path
         @ImgArray << $&
+        # 相対パスの場合
+      elsif link =~ $reg_relative_img_path
+        relative_path = $&
+        relative_path.slice!(0)
+        img_uri = @uri_access_now.gsub($last_path, relative_path)
+        @ImgArray << img_uri
       end
 
 
       if link =~ $http_link
         tmp = $&
         link_uri = tmp.delete!("\"")
-
         #画像のurlがくる可能性があるので、その場合無視して次のループへ
         if link_uri =~ $reg_absolute_img_path
           next

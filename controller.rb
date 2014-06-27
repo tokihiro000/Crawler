@@ -233,7 +233,8 @@ button.signal_connect("clicked") do
                   error_dialog.destroy
                 end
               #thread_1.kill
-              thread_2.kill
+                thread_2.kill
+                exit!
               end
             end
           }
